@@ -1,0 +1,28 @@
+/*Variables
+--------------------------------------------------------------------------------------------------------------------- */
+@import "base.variables";
+@import "bootstrap/scss/functions";
+@import "bootstrap/scss/variables";
+
+
+$brand-colors: (
+	"brand1": $primary,
+	"brand2": $secondary,
+	"primary": $primary,
+	"secondary": $secondary
+);
+
+$theme-colors: map-merge($theme-colors, $brand-colors);
+
+@import "bootstrap/scss/bootstrap";
+@import "project";
+
+:root {
+	--dashboard-sidebar-width: 250px;
+
+	--brand1: #{$brand1};
+	--brand2: #{$brand2};
+
+	--brand1-rgba: 254, 67, 101;
+	--brand2-rgba: 131, 175, 155;
+}
