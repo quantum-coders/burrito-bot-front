@@ -17,6 +17,7 @@
     "@vuelidate/core": "^2.0.3",
     "@vuelidate/validators": "^2.0.4",
     "@vueuse/core": "^11.3.0",
+    "bootstrap": "^5.3.3",
     "click-outside-vue3": "^4.0.1",
     "ethers": "5.7.2",
     "javascript-time-ago": "^2.5.11",

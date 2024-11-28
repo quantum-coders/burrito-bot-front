@@ -17,20 +17,19 @@
 <style scoped lang="sass">
 
 	.site-header
-		position: fixed
 		width: 100%
 		top: 0
-		z-index: 10000
-		padding: 0.75rem 0 0.75rem 0.75rem
+		z-index: 100
+		padding: 0.75rem
 		transition: all 250ms ease
-		background: white url("/images/background-texture.png")
+		background: white
 
 		@media (min-width: $sm)
 			position: sticky
-			padding: 1rem 0 1rem 2rem
+			padding: 1rem
 
 		&.fixed
-			background: white url("/images/background-texture.png")
+			background: white
 			box-shadow: 0 0 10px rgba(0, 0, 0, 0.1)
 
 		.primary-navigation

@@ -75,6 +75,7 @@ export const useAuth = () => {
 		}
 		return authUser;
 	};
+
 	const logout = async () => {
 		// TODO: Check how to use cookies instead of localStorage
 		if (process.client) localStorage.setItem('authToken', null);

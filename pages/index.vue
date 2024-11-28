@@ -1,10 +1,9 @@
-<script setup>
-definePageMeta({layout: 'burrito'});
-</script>
-
 <template>
-Hi
 </template>
+
+<script setup>
+	definePageMeta({ layout: 'burrito' });
+</script>
 
 <style scoped lang="sass">
 

@@ -9,7 +9,7 @@
 		<div class="modal-dialog modal-dialog-centered" role="document">
 			<div class="modal-content">
 				<div class="modal-body">
-					<slot :close="closeDialog"/>
+					<slot :close="closeDialog" />
 				</div>
 			</div>
 		</div>
@@ -17,28 +17,18 @@
 </template>
 
 <script setup>
-	import {Modal} from 'bootstrap';
+	import { Modal } from 'bootstrap';
 
 	const modal = ref(null);
 	let bootstrapModal = null;
 
-	const openDialog = () => {
-		if (bootstrapModal) bootstrapModal.show();
-	};
+	const openDialog = () => { if(bootstrapModal) bootstrapModal.show() };
+	const closeDialog = () => { if(bootstrapModal) bootstrapModal.hide(); };
 
-	const closeDialog = () => {
-		if (bootstrapModal) bootstrapModal.hide();
-	};
+	const open = () => { openDialog(); };
+	const close = () => { closeDialog(); };
 
-	const open = () => {
-		openDialog();
-	};
-
-	const close = () => {
-		closeDialog();
-	};
-
-	defineExpose({openDialog, closeDialog, open, close});
+	defineExpose({ openDialog, closeDialog, open, close });
 
 	onMounted(() => {
 		bootstrapModal = new Modal(modal.value, {
@@ -49,7 +39,7 @@
 	});
 
 	onBeforeUnmount(() => {
-		if (bootstrapModal) {
+		if(bootstrapModal) {
 			bootstrapModal.dispose();
 			bootstrapModal = null;
 		}
