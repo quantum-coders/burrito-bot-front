@@ -59,16 +59,6 @@
 									}}</p>
 							</div>
 						</div>
-						<!-- Account Balance in USD -->
-						<div class="coin d-flex align-items-center gap-2 py-1 px-2">
-							<icon name="cryptocurrency:usd" size="24" />
-							<div>
-								<small class="label">Account Balance (USD)</small>
-								<p class="coin-qty">
-									{{ parseFloat(web3Store.balances.usd || 0).toFixed(4) ?? 0.0 }}
-								</p>
-							</div>
-						</div>
 
 						<div class="d-flex wallet-buttons">
 							<button

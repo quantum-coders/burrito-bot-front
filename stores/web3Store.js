@@ -15,7 +15,7 @@ export const useWeb3Store = defineStore('web3', () => {
 	const toast = useToast();
 	const config = useRuntimeConfig();
 	const chainId = parseInt(43114);
-	const burritoTokenAddress = config.public.burritoTokenAddress;
+	const burritoTokenAddress = config.public.burritoTokenAddress
 	const usdtAddress = config.public.usdtAddress;
 
 	// State

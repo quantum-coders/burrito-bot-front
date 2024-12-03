@@ -18,7 +18,6 @@ export const useAuth = () => {
 			localStorage.setItem('authToken', user.accessToken);
 		}
 		authUser.value = user;  // Esto actualiza el estado directamente
-		useCryptoStore().userBalance = user?.balance || 0.00;
 	};
 
 	const login = async ({wallet}) => {
