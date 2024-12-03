@@ -1,19 +1,18 @@
-import { defineStore } from 'pinia';
-import { v4 as uuidv4 } from 'uuid';
-import { usePaige } from '~/stores/paige';
+import {defineStore} from 'pinia';
+import {v4 as uuidv4} from 'uuid';
+import {usePaige} from '~/stores/paige';
 
 export const useChat = defineStore('chat', () => {
 
 	const wisMessage = ref(null);
 	const chat = ref(null);
 	const thread = ref(null);
-
 	const initChat = async () => {
-		const { data, error } = await useBaseFetch('/users/me/chat', {
+		const {data, error} = await useBaseFetch('/users/me/chat', {
 			method: 'POST',
 		});
 
-		if(error.value) {
+		if (error.value) {
 			usePrettyToast().errorToast('Error fetching chat');
 		}
 
@@ -37,110 +36,144 @@ export const useChat = defineStore('chat', () => {
 	};
 
 	const scrollToBottom = (animated = true) => {
-		// scroll to the bottom of #thread, animated
-		const thread = document.getElementById('thread');
-		if(!thread) return;
+		return new Promise((resolve) => {
+			setTimeout(() => {
+				const thread = document.getElementById('thread');
+				if (!thread) {
+					resolve();
+					return;
+				}
 
-		if(animated) thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' });
-		else thread.scrollTo({ top: thread.scrollHeight });
-	};
+				const scrollOptions = {
+					top: thread.scrollHeight,
+					behavior: animated ? 'smooth' : 'auto'
+				};
 
-	const sendMessage = async (message) => {
-
-		// Create a message for assistant
-		const assistantMessage = addMessage({ role: 'assistant', text: '', loading: true });
-
-		// get current url
-		const url = useRouter().currentRoute.value.fullPath;
-
-		// Scroll to the bottom of the thread
-		scrollToBottom();
-
-		// get authToken from localStorage
-		const authToken = localStorage.getItem('authToken');
-
-		const res = await $fetch(`${ useRuntimeConfig().public.apiURL }/ai/message/paige`, {
-			method: 'POST',
-			body: {
-				url: url,
-				idChat: chat.value.id,
-				idThread: thread.value.id,
-				agent: usePaige().agent,
-				prompt: message,
-			},
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${ authToken }`,
-			},
-			responseType: 'stream',
+				thread.scrollTo(scrollOptions);
+				resolve();
+			}, 10); // pequeño delay para asegurar que el contenido se haya renderizado
 		});
+	};
+	const sendMessage = async (message) => {
+		let assistantMessage = null;  // Declaramos aquí para que esté disponible en todo el scope
 
-		assistantMessage.loading = false;
+		try {
+			if (!message || !message.trim()) return;
 
-		const reader = res.pipeThrough(new TextDecoderStream()).getReader();
-		let buffer = '';
+			// Agregar mensaje del usuario primero
+			addMessage({
+				role: 'user',
+				text: message
+			});
 
-		// Read the chunk of data as we get it
-		while(true) {
-			const { value, done } = await reader.read();
+			// Crear mensaje del asistente
+			assistantMessage = addMessage({
+				role: 'assistant',
+				text: '',
+				loading: true
+			});
 
-			if(done) {
-				await new Promise((resolve) => setTimeout(resolve, 100));
-				scrollToBottom();
-				break;
+			await nextTick();
+			scrollToBottom();
+
+			const url = useRouter().currentRoute.value.fullPath;
+			const authToken = localStorage.getItem('authToken');
+
+			const res = await $fetch(`${useRuntimeConfig().public.apiURL}/ai/message/paige`, {
+				method: 'POST',
+				body: {
+					url: url,
+					idChat: chat.value.id,
+					idThread: thread.value.id,
+					agent: usePaige().agent,
+					prompt: message,
+				},
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${authToken}`,
+				},
+				responseType: 'stream',
+			});
+
+			const reader = res.pipeThrough(new TextDecoderStream()).getReader();
+			let buffer = '';
+
+			while (true) {
+				const {value, done} = await reader.read();
+
+				if (done) {
+					const index = thread.value.messages.findIndex(m => m.uid === assistantMessage.uid);
+					if (index !== -1) {
+						thread.value.messages[index].loading = false;
+					}
+					await nextTick();
+					scrollToBottom();
+					break;
+				}
+
+				buffer += value;
+				const lines = buffer.split('\n\n');
+				buffer = lines.pop() || '';
+
+				for (const line of lines) {
+					let processedLine = line.trim();
+					const index = thread.value.messages.findIndex(m => m.uid === assistantMessage.uid);
+
+					if (index === -1) continue;
+
+					if (processedLine.startsWith('data: ')) {
+						processedLine = processedLine.substring(6);
+
+						if (processedLine === '[DONE]') {
+							thread.value.messages[index].loading = false;
+							await nextTick();
+							scrollToBottom();
+							continue;
+						}
+
+						thread.value.messages[index].text += processedLine;
+						await nextTick();
+						scrollToBottom();
+					} else if (processedLine.startsWith('json: ')) {
+						try {
+							const json = JSON.parse(processedLine.substring(6));
+							if (typeof usePaige()[json.name] === 'function') {
+								await usePaige()[json.name](json.arguments);
+								await nextTick();
+								scrollToBottom();
+							}
+						} catch (e) {
+							console.error('Error processing JSON line:', e);
+						}
+					} else if (processedLine === '') {
+						thread.value.messages[index].text += '\n\n';
+					} else if (processedLine.startsWith('\n')) {
+						thread.value.messages[index].text += '\n ';
+					}
+				}
 			}
 
-			buffer += value;
-			const lines = buffer.split('\n\n');
-			buffer = lines.pop();
+		} catch (error) {
+			console.error('Error in sendMessage:', error);
+			usePrettyToast().errorToast('Error sending message');
 
-			console.log('lines:', lines);
-
-			for(let line of lines) {
-				const index = thread.value.messages.findIndex((m) => m.uid === assistantMessage.uid);
-				if(line === '' && index !== -1) {
-					thread.value.messages[index].text += '\n\n';
-					continue;
+			if (assistantMessage) {
+				const index = thread.value.messages.findIndex(m => m.uid === assistantMessage.uid);
+				if (index !== -1) {
+					thread.value.messages[index].loading = false;
+					thread.value.messages[index].error = true;
+					thread.value.messages[index].text = 'Error sending message. Please try again.';
 				}
-
-				console.log('line:', line, line.startsWith('\n'), line.startsWith('\n') && index !== -1);
-				if(line.startsWith('\n') && index !== -1) thread.value.messages[index].text += '\n ';
-				console.log(thread.value.messages[index].text);
-
-				line = line.trim();
-
-				if(line.startsWith('data: ')) {
-					line = line.substring(6);
-
-					if(line === '[DONE]') {
-						assistantMessage.loading = false;
-						scrollToBottom();
-						break;
-					}
-
-					scrollToBottom();
-
-					if(index !== -1) thread.value.messages[index].text += line;
-				}
-
-				if(line.startsWith('json: ')) {
-					const json = JSON.parse(line.substring(6));
-
-					console.log('json:', json);
-
-					if(typeof usePaige()[json.name] !== 'function') {
-						console.error(`Function ${ json.name } not found in usePaige`);
-						break;
-					}
-
-					// call the function from usePaige
-					usePaige()[json.name](json.arguments);
-					scrollToBottom();
+			}
+		} finally {
+			if (assistantMessage) {
+				const index = thread.value.messages.findIndex(m => m.uid === assistantMessage.uid);
+				if (index !== -1) {
+					thread.value.messages[index].loading = false;
 				}
 			}
 		}
 	};
-
 	const openWis = async (messageUid) => {
 		wisMessage.value = thread.value.messages.find((m) => m.uid === messageUid);
 	};
